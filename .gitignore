@@ -138,3 +138,4 @@ Makefile
 projects/doxygen/*.conf
 projects/doxygen/html
 Rx/v2/examples/doxygen/output.txt
+build.wasm

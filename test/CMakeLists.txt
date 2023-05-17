@@ -10,6 +10,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(unit_tests
+  play.cpp
   play_test.cpp
 )
 target_include_directories(unit_tests PRIVATE
