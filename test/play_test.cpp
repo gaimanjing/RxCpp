@@ -8,6 +8,12 @@ protected:
   void TearDown() override {}
 };
 
+void print_indentation(int level) {
+  while (level--) {
+    std::cout << "    ";
+  }
+}
+
 TEST_F(PlayTestSuite, subscribe) {
   // Given
   auto values1 = rxcpp::observable<>::range(1, 5);
@@ -358,4 +364,33 @@ TEST_F(PlayTestSuite, range_map_observe_on) {
 
   //------------------ Print the main thread details
   std::cout << "Main Thread id => " << std::this_thread::get_id() << std::endl;
+}
+TEST_F(PlayTestSuite, multi_observe_on_new_thread) {
+  auto values =
+      rxcpp::observable<>::range(1, 4)
+          .observe_on(rxcpp::observe_on_new_thread())
+          .map([](int v) {
+            print_indentation(1);
+            std::cout << "#1, thread id => " << std::this_thread::get_id()
+                      << "  " << v << std::endl;
+            return v;
+          })
+          .observe_on(rxcpp::observe_on_new_thread())
+          .map([](int v) {
+            print_indentation(2);
+            std::cout << "#2, thread id => " << std::this_thread::get_id()
+                      << "  " << v << std::endl;
+            return v;
+          })
+          .observe_on(rxcpp::observe_on_new_thread())
+          .map([](int v) {
+            print_indentation(3);
+            std::cout << "#3, thread id => " << std::this_thread::get_id()
+                      << "  " << v << std::endl;
+            return v;
+          });
+
+  std::cout << "#0, Main thread id => " << std::this_thread::get_id()
+            << std::endl;
+  values.as_blocking().subscribe();
 }
