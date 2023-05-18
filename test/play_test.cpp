@@ -1,5 +1,7 @@
 #include "rxcpp/rx.hpp"
 
+#include "helper.hpp"
+
 #include <gtest/gtest.h>
 
 class PlayTestSuite : public ::testing::Test {
@@ -7,12 +9,6 @@ protected:
   void SetUp() override {}
   void TearDown() override {}
 };
-
-void print_indentation(int level) {
-  while (level--) {
-    std::cout << "    ";
-  }
-}
 
 TEST_F(PlayTestSuite, subscribe) {
   // Given
@@ -344,15 +340,11 @@ TEST_F(PlayTestSuite, subject) {
 }
 
 TEST_F(PlayTestSuite, range_map_observe_on) {
-  //---------------- Generate a range of values
-  //---------------- Apply Square function
   auto values =
       rxcpp::observable<>::range(1, 4).map([](int v) { return v * v; });
 
-  //------------- Emit the current thread details
   std::cout << "Main Thread id => " << std::this_thread::get_id() << std::endl;
-  //---------- observe_on another thread....
-  //---------- make it blocking to
+
   values.observe_on(rxcpp::synchronize_new_thread())
       .as_blocking()
       .subscribe(
@@ -362,9 +354,9 @@ TEST_F(PlayTestSuite, range_map_observe_on) {
           },
           []() { std::cout << "OnCompleted" << std::endl; });
 
-  //------------------ Print the main thread details
   std::cout << "Main Thread id => " << std::this_thread::get_id() << std::endl;
 }
+
 TEST_F(PlayTestSuite, multi_observe_on_new_thread) {
   auto values =
       rxcpp::observable<>::range(1, 4)
@@ -392,5 +384,51 @@ TEST_F(PlayTestSuite, multi_observe_on_new_thread) {
 
   std::cout << "#0, Main thread id => " << std::this_thread::get_id()
             << std::endl;
+  values.as_blocking().subscribe();
+}
+
+TEST_F(PlayTestSuite, muliti_observe_on_new_thread) {
+  auto values = rxcpp::observable<>::interval(std::chrono::milliseconds(50),
+                                              rxcpp::observe_on_new_thread())
+                    .take(5)
+                    .publish();
+
+  auto threads = rxcpp::observe_on_new_thread();
+  values.observe_on(threads).subscribe(
+      [](int v) {
+        print_indentation(1);
+        std::cout << "#1, thread: #" << std::this_thread::get_id()
+                  << ", on_next: " << v << std::endl;
+      },
+      []() {
+        print_indentation(1);
+        std::cout << "#1, thread: #" << std::this_thread::get_id()
+                  << ", on_completed: " << std::endl;
+      });
+  values.observe_on(threads).subscribe(
+      [](int v) {
+        print_indentation(2);
+        std::cout << "#2, thread: #" << std::this_thread::get_id()
+                  << ", on_next: " << v << std::endl;
+      },
+      []() {
+        print_indentation(2);
+        std::cout << "#2, thread: #" << std::this_thread::get_id()
+                  << ", on_completed: " << std::endl;
+      });
+
+  // When
+  values.connect();
+  values.as_blocking().subscribe();
+}
+
+TEST_F(PlayTestSuite, as_blocking) {
+  auto values = rxcpp::observable<>::interval(std::chrono::milliseconds(50),
+                                              rxcpp::observe_on_new_thread())
+                    .take(5)
+                    .publish();
+
+  // When
+  values.connect();
   values.as_blocking().subscribe();
 }

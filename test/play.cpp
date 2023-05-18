@@ -1,5 +1,7 @@
 #include "rxcpp/rx.hpp"
 
+#include "helper.hpp"
+
 #include <gtest/gtest.h>
 
 class PlaySuite : public ::testing::Test {
@@ -25,11 +27,13 @@ TEST_F(PlaySuite, app) {
   ui_event_sequence.observe_on(model_coordination)
       .subscribe(
           [&](int v) {
+            print_indentation(1);
             std::cout << "#1, model thread: #" << std::this_thread::get_id()
                       << ", on_next: " << v << std::endl;
             model_subject.get_subscriber().on_next(v);
           },
           [&]() {
+            print_indentation(1);
             std::cout << "#1, model thread: #" << std::this_thread::get_id()
                       << ", on_completed: " << std::endl;
             model_subject.get_subscriber().on_completed();
@@ -43,11 +47,13 @@ TEST_F(PlaySuite, app) {
                            .observe_on(main_coordination)
                            .subscribe(
                                [](int v) {
+                                 print_indentation(2);
                                  std::cout << "#2, observer thread: #"
                                            << std::this_thread::get_id()
                                            << ", on_next: " << v << std::endl;
                                },
                                [&]() {
+                                 print_indentation(2);
                                  std::cout << "#2, observer thread: #"
                                            << std::this_thread::get_id()
                                            << ", on_completed: " << std::endl;
@@ -58,9 +64,11 @@ TEST_F(PlaySuite, app) {
   ui_event_sequence.connect();
 
   // loop
+  print_indentation(3);
   std::cout << "#3, before run loop" << std::endl;
   while (!run_loop.empty() || !finished) {
     run_loop.dispatch();
   }
+  print_indentation(3);
   std::cout << "#3, after run loop" << std::endl;
 }
